@@ -1,6 +1,7 @@
 package com.example.quiz_app_starter
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -136,7 +137,7 @@ fun MainMenuScreen(
 
         Button(
             onClick = {
-                println("Play button clicked!")
+                Log.i("MainMenuScreen", "Play button clicked!")
             },
             modifier = Modifier.fillMaxWidth(0.6f),
             shape = MaterialTheme.shapes.medium
@@ -150,6 +151,6 @@ fun MainMenuScreen(
 @Composable
 fun MainMenuScreenPreview() {
     QuizappstarterTheme {
-        MainMenuScreen(3, Modifier)
+        MainMenuScreen(42, Modifier)
     }
 }
