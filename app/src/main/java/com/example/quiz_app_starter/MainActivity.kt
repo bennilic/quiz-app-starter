@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
             QuizappstarterTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MainMenuScreen(
-                        bestScore = 3,
+                        bestScore = 42,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -135,7 +135,9 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {},
+            onClick = {
+                println("Play button clicked!")
+            },
             modifier = Modifier.fillMaxWidth(0.6f),
             shape = MaterialTheme.shapes.medium
         ) {
