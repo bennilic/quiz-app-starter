@@ -24,8 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -79,9 +82,30 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "Test your knowledge!",
+            text = buildAnnotatedString {
+                // Normal "Test your " text
+                appendLine("    Test your ")
+
+                // Rainbow-colored "KNOWLEDGE" (one color per letter)
+                val rainbow = listOf(
+                    Color(0xFFE53935), // red
+                    Color(0xFFFB8C00), // orange
+                    Color(0xFFFFEB3B), // yellow
+                    Color(0xFFCDDC39), // lime
+                    Color(0xFF43A047), // green
+                    Color(0xFF00897B), // teal
+                    Color(0xFF1E88E5), // blue
+                    Color(0xFF3949AB), // indigo
+                    Color(0xFF8E24AA)  // purple
+                )
+                val word = "KNOWLEDGE"
+                for (i in word.indices) {
+                    withStyle(style = SpanStyle(color = rainbow[i % rainbow.size], fontWeight = FontWeight.Bold)) {
+                        append(word[i])
+                    }
+                }
+            },
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
