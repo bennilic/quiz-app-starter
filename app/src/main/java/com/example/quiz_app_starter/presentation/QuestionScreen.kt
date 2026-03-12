@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -38,21 +39,83 @@ import kotlinx.coroutines.delay
 @Composable
 fun QuestionScreen(
     questions: List<Question> = getDummyQuestions(),
-    currentQuestionIndex: Int = 0,
+    onNavigateToFinish: (Int) -> Unit = {}
 ) {
+    var currentQuestionIndex by remember { mutableIntStateOf(0) }
+    var score by remember { mutableIntStateOf(0) }
     val question = questions[currentQuestionIndex]
 
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
 
     val timerDurationSeconds = 30
     var timeLeft by remember { mutableIntStateOf(timerDurationSeconds) }
+    var timerRunning by remember { mutableStateOf(true) }
+
+    var dialogTitle by remember { mutableStateOf("") }
+    var dialogMessage by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentQuestionIndex) {
         timeLeft = timerDurationSeconds
-        while (timeLeft > 0) {
+        timerRunning = true
+        selectedAnswer = null
+        while (timeLeft > 0 && timerRunning) {
             delay(1000L)
             timeLeft--
         }
+        if (timerRunning && timeLeft == 0) {
+            if (selectedAnswer == null) {
+                dialogTitle = "No answer selected.\nTime is out."
+                dialogMessage = "The correct answer was: ${question.correctAnswer}"
+            } else if (selectedAnswer == question.correctAnswer) {
+                dialogTitle = "Correct!"
+                dialogMessage = null
+                score++
+            } else {
+                dialogTitle = "Wrong!"
+                dialogMessage = "The correct answer was: ${question.correctAnswer}"
+            }
+            timerRunning = false
+            showDialog = true
+        }
+    }
+
+    fun onSubmit() {
+        timerRunning = false
+        if (selectedAnswer == null) {
+            dialogTitle = "No answer selected.\nTime is out."
+            dialogMessage = "The correct answer was: ${question.correctAnswer}"
+        } else if (selectedAnswer == question.correctAnswer) {
+            dialogTitle = "Correct!"
+            dialogMessage = null
+            score++
+        } else {
+            dialogTitle = "Wrong!"
+            dialogMessage = "The correct answer was: ${question.correctAnswer}"
+        }
+        showDialog = true
+    }
+
+    fun onNext() {
+        showDialog = false
+        if (currentQuestionIndex + 1 < questions.size) {
+            currentQuestionIndex++
+        } else {
+            onNavigateToFinish(score)
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(dialogTitle) },
+            text = dialogMessage?.let { { Text(it) } },
+            confirmButton = {
+                Button(onClick = { onNext() }) {
+                    Text("Next")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -72,7 +135,7 @@ fun QuestionScreen(
         bottomBar = {
             BottomAppBar {
                 Button(
-                    onClick = {},
+                    onClick = { onSubmit() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)

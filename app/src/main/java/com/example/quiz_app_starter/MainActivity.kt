@@ -1,7 +1,6 @@
 package com.example.quiz_app_starter
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.quiz_app_starter.navigation.Navigation
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,12 +41,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             QuizappstarterTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainMenuScreen(
-                        bestScore = 42,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                Navigation()
             }
         }
     }
@@ -56,11 +50,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainMenuScreen(
     bestScore: Int = 0,
-    modifier: Modifier
+    onPlayClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-
     Column(
         modifier = modifier
+            .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -84,20 +79,17 @@ fun MainMenuScreen(
 
         Text(
             text = buildAnnotatedString {
-                // Normal "Test your " text
                 appendLine("    Test your ")
-
-                // Rainbow-colored "KNOWLEDGE" (one color per letter)
                 val rainbow = listOf(
-                    Color(0xFFE53935), // red
-                    Color(0xFFFB8C00), // orange
-                    Color(0xFFFFEB3B), // yellow
-                    Color(0xFFCDDC39), // lime
-                    Color(0xFF43A047), // green
-                    Color(0xFF00897B), // teal
-                    Color(0xFF1E88E5), // blue
-                    Color(0xFF3949AB), // indigo
-                    Color(0xFF8E24AA)  // purple
+                    Color(0xFFE53935),
+                    Color(0xFFFB8C00),
+                    Color(0xFFFFEB3B),
+                    Color(0xFFCDDC39),
+                    Color(0xFF43A047),
+                    Color(0xFF00897B),
+                    Color(0xFF1E88E5),
+                    Color(0xFF3949AB),
+                    Color(0xFF8E24AA)
                 )
                 val word = "KNOWLEDGE"
                 for (i in word.indices) {
@@ -114,12 +106,9 @@ fun MainMenuScreen(
 
         Box(
             modifier = Modifier
-                .clip(
-                    RoundedCornerShape(16.dp)
-                )
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(0.5f))
                 .padding(16.dp)
-
         ) {
             Column(
                 verticalArrangement = Arrangement.Center,
@@ -136,9 +125,7 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                Log.i("MainMenuScreen", "Play button clicked!")
-            },
+            onClick = onPlayClick,
             modifier = Modifier.fillMaxWidth(0.6f),
             shape = MaterialTheme.shapes.medium
         ) {
@@ -151,6 +138,6 @@ fun MainMenuScreen(
 @Composable
 fun MainMenuScreenPreview() {
     QuizappstarterTheme {
-        MainMenuScreen(42, Modifier)
+        MainMenuScreen(42)
     }
 }
