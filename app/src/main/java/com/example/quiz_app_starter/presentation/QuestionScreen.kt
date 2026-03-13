@@ -83,7 +83,7 @@ fun QuestionScreen(
     fun onSubmit() {
         timerRunning = false
         if (selectedAnswer == null) {
-            dialogTitle = "No answer selected.\nTime is out."
+            dialogTitle = "No answer selected."
             dialogMessage = "The correct answer was: ${question.correctAnswer}"
         } else if (selectedAnswer == question.correctAnswer) {
             dialogTitle = "Correct!"
