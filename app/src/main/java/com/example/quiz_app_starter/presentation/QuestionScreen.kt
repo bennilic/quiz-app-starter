@@ -21,97 +21,47 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quiz_app_starter.model.Question
 import com.example.quiz_app_starter.model.getDummyQuestions
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
     questions: List<Question> = getDummyQuestions(),
-    onNavigateToFinish: (Int) -> Unit = {}
+    onNavigateToFinish: (Int) -> Unit = {},
+    vm: QuestionScreenViewModel = viewModel { QuestionScreenViewModel(questions) }
 ) {
-    var currentQuestionIndex by remember { mutableIntStateOf(0) }
-    var score by remember { mutableIntStateOf(0) }
-    val question = questions[currentQuestionIndex]
+    val state by vm.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var selectedAnswer by remember { mutableStateOf<String?>(null) }
-
-    val timerDurationSeconds = 30
-    var timeLeft by remember { mutableIntStateOf(timerDurationSeconds) }
-    var timerRunning by remember { mutableStateOf(true) }
-
-    var dialogTitle by remember { mutableStateOf("") }
-    var dialogMessage by remember { mutableStateOf<String?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentQuestionIndex) {
-        timeLeft = timerDurationSeconds
-        timerRunning = true
-        selectedAnswer = null
-        while (timeLeft > 0 && timerRunning) {
-            delay(1000L)
-            timeLeft--
-        }
-        if (timerRunning && timeLeft == 0) {
-            if (selectedAnswer == null) {
-                dialogTitle = "No answer selected.\nTime is out."
-                dialogMessage = "The correct answer was: ${question.correctAnswer}"
-            } else if (selectedAnswer == question.correctAnswer) {
-                dialogTitle = "Correct!"
-                dialogMessage = null
-                score++
-            } else {
-                dialogTitle = "Wrong!"
-                dialogMessage = "The correct answer was: ${question.correctAnswer}"
-            }
-            timerRunning = false
-            showDialog = true
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(vm)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(vm)
         }
     }
 
-    fun onSubmit() {
-        timerRunning = false
-        if (selectedAnswer == null) {
-            dialogTitle = "No answer selected."
-            dialogMessage = "The correct answer was: ${question.correctAnswer}"
-        } else if (selectedAnswer == question.correctAnswer) {
-            dialogTitle = "Correct!"
-            dialogMessage = null
-            score++
-        } else {
-            dialogTitle = "Wrong!"
-            dialogMessage = "The correct answer was: ${question.correctAnswer}"
-        }
-        showDialog = true
-    }
-
-    fun onNext() {
-        showDialog = false
-        if (currentQuestionIndex + 1 < questions.size) {
-            currentQuestionIndex++
-        } else {
-            onNavigateToFinish(score)
-        }
-    }
-
-    if (showDialog) {
+    if (state.showDialog) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text(dialogTitle) },
-            text = dialogMessage?.let { { Text(it) } },
+            title = { Text(state.dialogTitle) },
+            text = state.dialogMessage?.let { { Text(it) } },
             confirmButton = {
-                Button(onClick = { onNext() }) {
+                Button(onClick = {
+                    val finalScore = vm.onNext()
+                    if (finalScore != null) {
+                        onNavigateToFinish(finalScore)
+                    }
+                }) {
                     Text("Next")
                 }
             }
@@ -135,7 +85,7 @@ fun QuestionScreen(
         bottomBar = {
             BottomAppBar {
                 Button(
-                    onClick = { onSubmit() },
+                    onClick = { vm.onSubmit() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -151,7 +101,7 @@ fun QuestionScreen(
         ) {
             item {
                 LinearProgressIndicator(
-                    progress = { timeLeft.toFloat() / timerDurationSeconds.toFloat() },
+                    progress = { state.timerProgress },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -162,16 +112,16 @@ fun QuestionScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Q${currentQuestionIndex + 1}: ${question.question}",
+                        text = "Q${state.currentQuestionIndex + 1}: ${state.currentQuestion.question}",
                         modifier = Modifier.padding(16.dp)
                     )
                 }
             }
-            items(question.answers) { answer ->
+            items(state.currentQuestion.answers) { answer ->
                 AnswerCard(
                     answer = answer,
-                    isSelected = answer == selectedAnswer,
-                    onSelect = { selectedAnswer = answer }
+                    isSelected = answer == state.selectedAnswer,
+                    onSelect = { vm.onAnswerSelected(answer) }
                 )
             }
         }
