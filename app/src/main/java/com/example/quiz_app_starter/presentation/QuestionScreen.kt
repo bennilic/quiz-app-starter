@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,7 +34,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
-    viewModel: QuestionScreenViewModel = hiltViewModel()
+    viewModel: QuestionScreenViewModel = hiltViewModel(),
+    onQuizFinished: (Int) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -45,16 +47,32 @@ fun QuestionScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is QuestionScreenViewModel.NavigationEvent.FinishQuiz ->
+                    onQuizFinished(event.points)
+            }
+        }
+    }
+
     val question = uiState.currentQuestion
 
     if (uiState.showResultDialog) {
+        val isLast = uiState.currentQuestionIndex + 1 >= uiState.questions.size
         AlertDialog(
             onDismissRequest = viewModel::onDismissDialog,
-            title = { Text(if (uiState.dialogMessage.startsWith("Correct")) "Correct!" else "Wrong!") },
+            title = {
+                val title = when {
+                    uiState.dialogMessage.startsWith("Correct") -> "Correct!"
+                    uiState.dialogMessage.startsWith("No answer") -> "Time's up!"
+                    else -> "Wrong!"
+                }
+                Text(title)
+            },
             text = { Text(uiState.dialogMessage) },
             confirmButton = {
                 Button(onClick = viewModel::onDismissDialog) {
-                    val isLast = uiState.currentQuestionIndex + 1 >= uiState.questions.size
                     Text(if (isLast) "Finish" else "Next")
                 }
             }
@@ -150,4 +168,3 @@ fun AnswerCard(
         }
     }
 }
-

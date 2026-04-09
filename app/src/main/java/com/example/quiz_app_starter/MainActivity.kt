@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.quiz_app_starter.navigation.Navigation
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -44,12 +44,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             QuizappstarterTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainMenuScreen(
-                        bestScore = 42,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                Navigation()
             }
         }
     }
@@ -58,7 +53,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainMenuScreen(
     bestScore: Int = 0,
-    modifier: Modifier
+    modifier: Modifier = Modifier,
+    onPlayClick: () -> Unit = {}
 ) {
 
     Column(
@@ -140,6 +136,7 @@ fun MainMenuScreen(
         Button(
             onClick = {
                 Log.i("MainMenuScreen", "Play button clicked!")
+                onPlayClick()
             },
             modifier = Modifier.fillMaxWidth(0.6f),
             shape = MaterialTheme.shapes.medium
