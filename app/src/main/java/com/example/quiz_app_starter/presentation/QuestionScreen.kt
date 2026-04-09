@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -20,45 +21,50 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import com.example.quiz_app_starter.model.Question
-import com.example.quiz_app_starter.model.getDummyQuestions
-import kotlinx.coroutines.delay
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
-    questions: List<Question> = getDummyQuestions(),
-    currentQuestionIndex: Int = 0,
+    viewModel: QuestionScreenViewModel = hiltViewModel()
 ) {
-    val question = questions[currentQuestionIndex]
+    val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var selectedAnswer by remember { mutableStateOf<String?>(null) }
-
-    val timerDurationSeconds = 30
-    var timeLeft by remember { mutableIntStateOf(timerDurationSeconds) }
-
-    LaunchedEffect(currentQuestionIndex) {
-        timeLeft = timerDurationSeconds
-        while (timeLeft > 0) {
-            delay(1000L)
-            timeLeft--
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(viewModel)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(viewModel)
         }
+    }
+
+    val question = uiState.currentQuestion
+
+    if (uiState.showResultDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDismissDialog,
+            title = { Text(if (uiState.dialogMessage.startsWith("Correct")) "Correct!" else "Wrong!") },
+            text = { Text(uiState.dialogMessage) },
+            confirmButton = {
+                Button(onClick = viewModel::onDismissDialog) {
+                    val isLast = uiState.currentQuestionIndex + 1 >= uiState.questions.size
+                    Text(if (isLast) "Finish" else "Next")
+                }
+            }
+        )
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quiz App") },
+                title = { Text("Quiz App — ${uiState.pointsAchieved} pts") },
                 actions = {
                     IconButton(onClick = {}) {
                         Icon(
@@ -72,7 +78,8 @@ fun QuestionScreen(
         bottomBar = {
             BottomAppBar {
                 Button(
-                    onClick = {},
+                    onClick = viewModel::onSubmit,
+                    enabled = uiState.selectedAnswer != null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -82,34 +89,36 @@ fun QuestionScreen(
             }
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                LinearProgressIndicator(
-                    progress = { timeLeft.toFloat() / timerDurationSeconds.toFloat() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "Q${currentQuestionIndex + 1}: ${question.question}",
-                        modifier = Modifier.padding(16.dp)
+        if (question != null) {
+            LazyColumn(
+                modifier = Modifier.padding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    LinearProgressIndicator(
+                        progress = { uiState.timerProgress },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-            items(question.answers) { answer ->
-                AnswerCard(
-                    answer = answer,
-                    isSelected = answer == selectedAnswer,
-                    onSelect = { selectedAnswer = answer }
-                )
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Q${uiState.currentQuestionIndex + 1}: ${question.question}",
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+                items(question.answers) { answer ->
+                    AnswerCard(
+                        answer = answer,
+                        isSelected = answer == uiState.selectedAnswer,
+                        onSelect = { viewModel.onAnswerSelected(answer) }
+                    )
+                }
             }
         }
     }
@@ -142,8 +151,3 @@ fun AnswerCard(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun QuestionScreenPreview() {
-    QuestionScreen()
-}
