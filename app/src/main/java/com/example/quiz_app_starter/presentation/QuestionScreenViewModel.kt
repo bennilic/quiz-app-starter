@@ -3,9 +3,9 @@ package com.example.quiz_app_starter.presentation
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.quiz_app_starter.model.Question
+import com.example.quiz_app_starter.data.QuestionRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,16 +13,28 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class QuestionScreenViewModel(questions: List<Question>) : ViewModel(), DefaultLifecycleObserver {
+@HiltViewModel
+class QuestionScreenViewModel @Inject constructor(
+    private val repository: QuestionRepository
+) : ViewModel(), DefaultLifecycleObserver {
 
-    private val _uiState = MutableStateFlow(QuestionScreenState(questions = questions))
+    private val _uiState = MutableStateFlow(QuestionScreenState())
     val uiState: StateFlow<QuestionScreenState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
 
     init {
-        startTimer()
+        loadQuestions()
+    }
+
+    private fun loadQuestions() {
+        viewModelScope.launch {
+            val questions = repository.getQuestions()
+            _uiState.update { it.copy(questions = questions) }
+            startTimer()
+        }
     }
 
     private fun startTimer() {
@@ -91,14 +103,5 @@ class QuestionScreenViewModel(questions: List<Question>) : ViewModel(), DefaultL
         } else {
             _uiState.update { it.copy(showResultDialog = false) }
         }
-    }
-
-    companion object {
-        fun Factory(questions: List<Question>): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                    QuestionScreenViewModel(questions) as T
-            }
     }
 }
